@@ -1,0 +1,85 @@
+<?php
+/**
+ * Description of usercontroller
+ *
+ * @author Justin Strandburg
+ */
+class PersonController extends BaseController {
+	
+	protected function makeRoutes() {
+		return [		
+			'index' => 'index',
+			'edit' => 'edit',
+			'insert' => 'insert',
+			'update' => 'update',
+			'delete' => 'update',
+		];
+	}
+
+	public function index() {
+		$table = Database::table('person');
+		$records = $table->select()->all()->fetchRecords();
+		$viewData = [
+			'persons'=>[],
+			'possessions'=>[],
+		];
+		
+		foreach ($records as $record) {			
+			$userArray = $record->toArray();
+			$viewData['persons'][$userArray['id']] = $userArray;
+			$possessions = $record->oneToMany('possession');
+			foreach ($possessions as $p) {
+				$viewData[$userArray['id']]['possessions'][] = $p->toArray();
+			}
+		}
+		
+		return View::make('person/index')->withData(['data'=>$viewData]);
+	}
+	
+	public function edit($id, $name=null) {
+		$table = Database::table('person');
+		$record = $table->load($id);
+		$viewData = [
+			'person' => null,
+		];		
+		
+		if ($record === null) {
+			Tofu::raiseError('Cannot find person '.$id);
+		} else {
+			$viewData['person'] = $record->toArray();
+		}
+		
+		return View::make('person/edit')->withData(['data'=>$viewData]);
+	}
+	
+	public function insert() {
+		$name = Request::input('person-name');
+		$table = Database::table('person');		
+		$newrecord = $table->newRecord();
+		$newrecord['name'] = $name;
+		if ($newrecord->save()) {
+		} else {
+			Tofu::raiseError('Failed to insert record!');
+		}
+		
+		Tofu::redirect('person/index');
+		
+		return View::make('default');
+	}
+
+	public function update($id) {
+		$table = Database::table('person');
+		$record = $table->load($id);
+		$record['name'] = Request::input('person-name');
+		if (!$record->save()) {
+			Tofu::raiseError('Failed to save changes!');
+			return View::make('default');			
+		} else {
+			//redirect here
+			return View::make('default');
+		}
+	}
+	
+	public function delete() {
+	}
+}
