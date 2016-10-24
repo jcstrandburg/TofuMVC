@@ -1,9 +1,9 @@
 <?php 
-require('../tofusys/config.php');
-require('../tofusys/view.php');
-require('../tofusys/request.php');
-require('../tofusys/model.php');
-require('../tofusys/basecontroller.php');
+require_once('../tofusys/config.php');
+require_once('../tofusys/view.php');
+require_once('../tofusys/request.php');
+require_once('../tofusys/model.php');
+require_once('../tofusys/basecontroller.php');
 
 /**
  * Helper function to dump a human readable version of a variable to the page
@@ -63,10 +63,24 @@ class Tofu {
 	static $errorStrings = [];
 	static $warningStrings = [];
 
+	/**
+	 * @var string $controllerName
+	 */
+	private $controllerName;
+
+	/**
+	 * @var string $action
+	 */
+	private $action;
+
+	/**
+	 * @var array $params
+	 */
+	private $params;
+
 	public function __construct() {
 		$fullurl = $_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];		
 		$this->parseURL($fullurl);
-		//$this->buildRequest();
 
 		set_include_path(get_include_path() . PATH_SEPARATOR . '..\\application' 
 			. PATH_SEPARATOR . '..\\application\\c' . PATH_SEPARATOR . '..\\application\\m');
@@ -93,7 +107,7 @@ class Tofu {
 	 * @throws Exception On malformed url or url not in expected format
 	 */
 	public function parseURL($fullurl) {
-		$controllerName = 'BaseController';
+		$controllerName = 'Base';
 		$action = 'index';
 		$params = [];
 
@@ -123,32 +137,6 @@ class Tofu {
 			$this->params = $params;
 		}
 	}
-
-	/**
-	 * 
-	 * @throws Exception
-	 * @todo move this to the request object, make it static
-	 */
-//	public function buildRequest() {
-//		//parse input from url/input stream and consolidate it
-//		if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-//			strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-//			$ajax = true;
-//		} else {
-//			$ajax = false;
-//		}
-//		parse_str(file_get_contents("php://input"), $inputs);		
-//		$inputs = array_merge($_GET, $inputs);
-//		$method = $_SERVER['REQUEST_METHOD'];
-//		if ($method === 'POST' && isset($inputs['__method'])) {
-//			$method = $inputs['__method'];
-//			unset($inputs['method']);
-//		}
-//		if (!in_array($method, ['POST', 'PUT', 'PATCH', 'GET', 'DELETE'])) {
-//			throw new Exception('Unrecognized method verb: '.$method);
-//		}
-//		$this->request = Request::Make($inputs, $method, $ajax);
-//	}
 	
 	/**
 	 * Loads the requested controller and returns an instance of it
@@ -198,6 +186,10 @@ class Tofu {
 		return self::$warningStrings;
 	}
 	
+	/**
+	 * Redirects to the specified route
+	 * @param  string $route
+	 */
 	public static function redirect($route) {
 		$redirectLocation = "http://".Config::$baseurl.$route;
 		//die($redirectLocation);

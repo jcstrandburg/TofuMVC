@@ -46,6 +46,20 @@ class Request {
 	}
 	
 	/**
+	 * Checks to see if the given fieldname is set, raising an error if it is not
+	 * @param  string $fieldname
+	 * @return bool True if the fieldname exists, false otherwise
+	 */
+	public static function demand($fieldname) {
+		if (!self::$isbuilt) { self::Build(); }
+		if (!isset(self::$inputs[$fieldname])) {
+			Tofu::raiseError("Missing required input {$fieldname}");
+			return false;
+		}
+		return true;
+	}
+
+	/**
 	 * Gets a combination of all possible GET, POST, PUT, etc.. inputs in a single array
 	 * @return array
 	 */

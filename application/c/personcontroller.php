@@ -12,7 +12,7 @@ class PersonController extends BaseController {
 			'edit' => 'edit',
 			'insert' => 'insert',
 			'update' => 'update',
-			'delete' => 'update',
+			'delete' => 'delete',
 		];
 	}
 
@@ -26,10 +26,12 @@ class PersonController extends BaseController {
 		
 		foreach ($records as $record) {			
 			$userArray = $record->toArray();
-			$viewData['persons'][$userArray['id']] = $userArray;
+			$id = $userArray['id'];
+			$viewData['persons'][$id] = $userArray;
+			$viewData['persons'][$id]['possessions'] = [];
 			$possessions = $record->oneToMany('possession');
 			foreach ($possessions as $p) {
-				$viewData[$userArray['id']]['possessions'][] = $p->toArray();
+				$viewData['persons'][$id]['possessions'][] = $p->toArray();
 			}
 		}
 		
@@ -47,9 +49,13 @@ class PersonController extends BaseController {
 			Tofu::raiseError('Cannot find person '.$id);
 		} else {
 			$viewData['person'] = $record->toArray();
+			$viewData['possessions'] = [];
+			foreach ($record->oneToMany('possession') as $possession) {
+				$viewData['possessions'][] = $possession->toArray();
+			}
 		}
 		
-		return View::make('person/edit')->withData(['data'=>$viewData]);
+		return View::make('person/edit')->withData($viewData);
 	}
 	
 	public function insert() {
@@ -62,8 +68,7 @@ class PersonController extends BaseController {
 			Tofu::raiseError('Failed to insert record!');
 		}
 		
-		Tofu::redirect('person/index');
-		
+		Tofu::redirect('person/index');		
 		return View::make('default');
 	}
 
@@ -76,10 +81,18 @@ class PersonController extends BaseController {
 			return View::make('default');			
 		} else {
 			//redirect here
-			return View::make('default');
+			Tofu::redirect('person/index');
 		}
 	}
 	
-	public function delete() {
+	public function delete($id) {
+		$id = filter_var($id, FILTER_VALIDATE_INT);
+		if ($id === null) {
+			Tofu::raiseError('Invalid id');
+			return View::make('default');
+		}
+		Database::table('possession')->delete()->where('person_id=?',[$id])->execute();
+		Database::table('person')->delete()->where('id=?',[$id])->execute();
+		Tofu::redirect('person/index');
 	}
 }

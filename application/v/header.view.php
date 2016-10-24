@@ -19,8 +19,7 @@
 
 <div class="container">
   <div class="starter-template">
-	<h1>Tofu muthafucka</h1>
-	<p class="lead">This is the standard header for tofu bitch.</p>
+	<h1>Tofu MVC Framework Demo</h1>
   </div>
 </div><!-- /.container -->
 

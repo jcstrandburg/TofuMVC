@@ -1,59 +1,4 @@
 <?php
-//class RecordModel implements ArrayAccess{
-//	protected $tableName;
-//	protected $record;
-//	
-//	public function __construct(Record $r=null) {
-//		if ($r === null) {
-//			$adapter = Database::table($this->tableName);
-//			$this->record = $table->newRecord();
-//		} else {
-//			$this->record = $r;
-//		}
-//	}
-//	
-//	public static function load($id_or_ids) {
-//		$adapter = Database::table($this->$tableName);
-//		if (is_array($id_or_ids)) {
-//			$returnme = [];
-//			foreach ($adapter->load($id_or_ids) as $record) {
-//				$returnme[] = new self($record);
-//			}
-//			return $returnme;
-//		} else {
-//			$record = $table->load($id_or_ids);
-//			return new self($record);
-//		}
-//	}
-//	
-//	public abstract function validate();
-//	
-//	public function __get($prop) {		
-//		return $this[$prop];
-//	}
-//
-//	public function __set($prop, $val) {
-//		return $this[$prop] = $val;
-//	}
-//	
-//	public function offsetExists($offset ) {
-//		return isset($this->record[$offset]);
-//	}
-//
-//	public function offsetGet($offset) {
-//		return $this->record[$offset];
-//	}
-//
-//	public function offsetSet($offset, $value ) {
-//		$this->record[$offset] = $value;
-//		return $value;
-//	}
-//
-//	public function offsetUnset($offset) {
-//		unset($this->record[$offset]);
-//	}	
-//}
-
 /**
  * Database record abstraction
  */
@@ -137,6 +82,48 @@ class Record implements ArrayAccess {
 		$primaryKey = $this->getSchema()->primaryKey;
 		$thisKey = $this[$primaryKey];
 		return $table->select()->where("{$foreignKey}=?", [$thisKey])->fetchRecords();
+	}
+	
+	/**
+	 * Gets one relation via the given intermedita relationship table
+	 * @param type $relationTableName
+	 * @param type $tableName
+	 * @return array[\Record]|null
+	 */
+	public function oneVia($relationTableName, $tableName) {
+		$result = $this->manyVia($relationTableName, $tableName);
+		if (count($result) == 0) {
+			return null;
+		} else {
+			return $result[0];
+		}
+	}
+	
+	/**
+	 * Gets all many to many relations via the given intermediate relationship table
+	 * @param type $relationTableName The table containing the many to many relationship records
+	 * @param type $tableName The end table containing the related records
+	 * @return array[\Record]
+	 */
+	public function manyVia($relationTableName, $tableName) {
+		$relationTable = Database::table($relationTableName);
+		$endTable = Database::table($tableName);
+		$thisKey = $this[$this->getSchema()->primaryKey];
+		$foreignKey1 = $this->tableAdapter->getTableName().'_id';
+		$foreignKey2 = $endTable->getTableName().'_id';
+		$endKey = $endTable->getSchema()->primaryKey;
+		
+		$relationships = $relationTable->select("`{$foreignKey2}`")
+										->where("`{$foreignKey1}`=?", [$thisKey])
+										->fetchRecords();
+		$findKeys = array_map(function($relationship) use($foreignKey2){
+			return $relationship[$foreignKey2];
+		}, $relationships);
+		if (count($findKeys) == 0) { 
+			return []; 
+		} else {
+			return $endTable->select()->where("`{$endKey}` in (".Database::slots(count($findKeys)).")", $findKeys)->fetchRecords();
+		}
 	}
 	
 	/**
